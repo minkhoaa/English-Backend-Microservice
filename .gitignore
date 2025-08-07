@@ -8,3 +8,7 @@
 
 # Built Visual Studio Code Extensions
 *.vsix
+
+.fake
+.vscode/tasks.json
+.vscode/launch.json

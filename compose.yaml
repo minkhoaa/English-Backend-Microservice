@@ -1,0 +1,22 @@
+# Please refer https://aka.ms/HTTPSinContainer on how to setup an https developer certificate for your ASP.NET Core service.
+
+services:
+  authservice:
+    image: authservice
+    environment:
+      - ASPNETCORE_FORWARDEDHEADERS_ENABLED=true
+    build:
+      context: .
+      dockerfile: Services/AuthService/Dockerfile
+    ports:
+      - 8080:8080
+  vocabularyservice:
+    image: vocabularyservice
+    environment:
+      - ASPNETCORE_FORWARDEDHEADERS_ENABLED=true
+    build: 
+      context: .
+      dockerfile: Services/VocabularyService/Dockerfile
+      
+    ports:
+      - 8081:8081

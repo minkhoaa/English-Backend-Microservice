@@ -27,8 +27,15 @@ namespace AuthService.Controllers
 
             var result = await _userService.RegisterAsync(model);
             return (result.Succeeded == true) ? Ok(new { Success = true, Message = "Create account successfully" })
-            : BadRequest(new { Success = false, Message = result.Errors.Select(e => e.Description).ToList() }) ;
+            : BadRequest(new { Success = false, Message = result.Errors.Select(e => e.Description).ToList() });
 
         }
+
+        [HttpPost("/login")]
+        public async Task<IActionResult> Login(RequestLogin model)
+        {
+            var result = await _userService.LoginAsync(model);
+            return result.IsSucceed ? Ok(new { result.Message, result.Data }) : BadRequest( new { result.Message, result.Data });
+        } 
     }
 }

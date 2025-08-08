@@ -24,7 +24,7 @@ builder.Services.AddControllers();
 
 builder.Services.AddDbContext<ApplicationDbContext>(option =>
 {
-    option.UseNpgsql(Environment.GetEnvironmentVariable("DEFAULT_CONNECTIONSTRING"));
+    option.UseNpgsql(Environment.GetEnvironmentVariable("DEFAULT_CONNECTIONSTRING") ?? builder.Configuration.GetConnectionString("DefaultConnectionString"));
 
 });
 
@@ -36,9 +36,12 @@ builder.Services.AddIdentity<User, Role>(option =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-//Config Jwt
+//Config Jwt, nhận được IOptions<JwtSettings>, cần inject vào các service là IOptions<JwtSettings>
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
-var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>(); 
+var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>();
+builder.Services.AddSingleton<JwtSettings>(); 
+
+
 builder.Services.AddAuthentication(option =>
 {
     option.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -74,6 +77,6 @@ app.UseAuthentication();
 app.MapControllers(); 
 
 
-//app.UseHttpsRedirection();
+app.UseHttpsRedirection();
 app.Run();
 

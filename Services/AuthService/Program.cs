@@ -3,7 +3,9 @@ using System.Security.Cryptography.Xml;
 using System.Text;
 using System.Text.Json;
 using AuthService.Data;
+using AuthService.IService;
 using AuthService.Models;
+using AuthService.Service;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.CodeAnalysis.Options;
@@ -14,11 +16,15 @@ using Microsoft.IdentityModel.Tokens;
 var builder = WebApplication.CreateBuilder(args);
 
 
+builder.Services.AddScoped<IUserService, UserService>(); 
+
+
+
 builder.Services.AddControllers(); 
 
 builder.Services.AddDbContext<ApplicationDbContext>(option =>
 {
-    option.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnectionString"));
+    option.UseNpgsql(Environment.GetEnvironmentVariable("DEFAULT_CONNECTIONSTRING"));
 
 });
 
@@ -68,6 +74,6 @@ app.UseAuthentication();
 app.MapControllers(); 
 
 
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 app.Run();
 

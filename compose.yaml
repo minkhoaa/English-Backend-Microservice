@@ -5,6 +5,8 @@ services:
     image: authservice
     environment:
       - ASPNETCORE_FORWARDEDHEADERS_ENABLED=true
+      - DEFAULT_CONNECTIONSTRING=Host=postgres;Port=5432;Database=mydb;Username=myuser;Password=mypassword
+
     build:
       context: .
       dockerfile: Services/AuthService/Dockerfile
@@ -16,6 +18,8 @@ services:
     image: vocabularyservice
     environment:
       - ASPNETCORE_FORWARDEDHEADERS_ENABLED=true
+      - DEFAULT_CONNECTIONSTRING="Host=postgres;Port=5432;Database=mydb;Username=myuser;Password=mypassword"
+
     build: 
       context: .
       dockerfile: Services/VocabularyService/Dockerfile
@@ -35,11 +39,11 @@ services:
     depends_on:
       - authservice
       - vocabularyservice
-    networks:
-      - backend
+    # thêm network chỗ này để gán gateway 
 
-  db:
+  postgres:
     image: postgres:15
+    container_name: postgres
     environment:
       - POSTGRES_USER=myuser
       - POSTGRES_PASSWORD=mypassword

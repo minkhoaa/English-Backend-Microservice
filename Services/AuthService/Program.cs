@@ -16,8 +16,8 @@ using Microsoft.IdentityModel.Tokens;
 var builder = WebApplication.CreateBuilder(args);
 
 
-builder.Services.AddScoped<IUserService, UserService>(); 
-
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IEmailService, EmailService>(); 
 
 
 builder.Services.AddControllers(); 
@@ -27,6 +27,10 @@ builder.Services.AddDbContext<ApplicationDbContext>(option =>
     option.UseNpgsql(Environment.GetEnvironmentVariable("DEFAULT_CONNECTIONSTRING") ?? builder.Configuration.GetConnectionString("DefaultConnectionString"));
 
 });
+
+builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("SmtpSettings"));
+var sendGridSettings = builder.Configuration.GetSection("SendGridSettings").Get<SmtpSettings>(); 
+
 
 builder.Services.AddIdentity<User, Role>(option =>
 {
@@ -40,6 +44,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
 var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>();
 builder.Services.AddSingleton<JwtSettings>(); 
+
 
 
 builder.Services.AddAuthentication(option =>

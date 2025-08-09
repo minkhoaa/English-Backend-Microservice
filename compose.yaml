@@ -21,8 +21,8 @@ services:
       - DEFAULT_CONNECTIONSTRING="Host=postgres;Port=5432;Database=mydb;Username=myuser;Password=mypassword"
 
     build: 
-      context: .
-      dockerfile: Services/VocabularyService/Dockerfile
+      context: ./Services/EmailSender
+      dockerfile: Dockerfile
       
     ports:
       - 8081:8081
@@ -54,6 +54,20 @@ services:
       - pgdata:/var/lib/postgresql/data
     networks:
       - backend
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports: ["6379:6379"]
+  mailhog: 
+    image: mailhog/mailhog
+    ports: 
+      - "1025:1025"
+      - "8025:8025"
+
+
+
+
 volumes:
   pgdata:
 

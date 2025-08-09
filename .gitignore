@@ -12,3 +12,4 @@
 .fake
 .vscode/tasks.json
 .vscode/launch.json
+Services/EmailSender/node_modules/.bin/css-beautify

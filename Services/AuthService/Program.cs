@@ -29,10 +29,6 @@ builder.Services.AddDbContext<ApplicationDbContext>(option =>
 
 });
 
-builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("SmtpSettings"));
-var sendGridSettings = builder.Configuration.GetSection("SendGridSettings").Get<SmtpSettings>(); 
-
-
 builder.Services.AddIdentity<User, Role>(option =>
 {
     option.Password.RequireDigit = false;

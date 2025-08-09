@@ -13,3 +13,7 @@
 .vscode/tasks.json
 .vscode/launch.json
 Services/EmailSender/node_modules/.bin/css-beautify
+GateWay/InternalGateway/appsettings.json
+GateWay/InternalGateway/appsettings.Development.json
+GateWay/InternalGateway/bin/Debug/net8.0/appsettings.json
+GateWay/InternalGateway/bin/Debug/net8.0/appsettings.Development.json

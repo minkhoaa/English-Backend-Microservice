@@ -12,13 +12,14 @@ using Microsoft.CodeAnalysis.Options;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
 
+
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IEmailService, EmailService>(); 
-
 
 builder.Services.AddControllers(); 
 
@@ -70,6 +71,8 @@ builder.Services.AddAuthentication(option =>
 
 
 var app = builder.Build();
+
+
 
 app.UseSwagger();
 app.UseSwaggerUI();

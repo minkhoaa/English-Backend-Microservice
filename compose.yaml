@@ -21,13 +21,23 @@ services:
       - DEFAULT_CONNECTIONSTRING="Host=postgres;Port=5432;Database=mydb;Username=myuser;Password=mypassword"
 
     build: 
-      context: ./Services/EmailSender
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: Services/VocabularyService/Dockerfile
       
     ports:
       - 8081:8081
     networks:
       - backend
+  emailsender: 
+    image: emailsender
+    build: 
+      context: ./Services/EmailSender/email-sender-nest
+      dockerfile: Dockerfile
+    env_file:
+      - ./Services/EmailSender/email-sender-nest/.env
+
+    ports:
+      - 3000:3000
 
   apigateway:
     image: nginx:alpine

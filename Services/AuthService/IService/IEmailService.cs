@@ -8,7 +8,6 @@ namespace AuthService.IService
 {
     public interface IEmailService
     {
-                public Task<ApiResponse> SendAsync(string toEmail, string subject, string html);
-
+        public Task<ApiResponse> SendAsync(string toEmail, string subject, string html);
     }
 }

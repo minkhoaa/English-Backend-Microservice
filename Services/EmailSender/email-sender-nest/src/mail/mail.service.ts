@@ -6,6 +6,8 @@ import path from "path";
 import Handlebars, { Exception } from "handlebars";
 import mjml2html from "mjml"
 import { ExecutionContextHost } from "@nestjs/core/helpers/execution-context-host";
+
+
 @Injectable()
 export class MailService {
     private transporter : nodemailer.Transporter; 

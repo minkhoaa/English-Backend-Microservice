@@ -11,8 +11,8 @@ class SendEmailDto {
   @IsEmail() to!: string;
   @ApiProperty({example: 'string'})
   @IsString() @IsNotEmpty() subject!: string;
-  @ApiProperty({example:'string'})
-  @IsString() @IsNotEmpty() template!: string; // vd: 'new-content'
+  @ApiProperty({example:'new-content'})
+  @IsString() @IsNotEmpty() template!: string; 
 
   @ApiPropertyOptional({
     type:'object',

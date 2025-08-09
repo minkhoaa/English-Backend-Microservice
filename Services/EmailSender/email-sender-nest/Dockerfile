@@ -1,30 +1,55 @@
-# ===== BUILD STAGE =====
+# syntax=docker/dockerfile:1.7
+
+########################
+# ===== BUILD STAGE ===
+########################
 FROM node:24-alpine AS build
 WORKDIR /app
 
-# 1) Copy file khai báo để tận dụng cache
+# 1) Chỉ copy file lock & package để tối ưu cache
 COPY package*.json ./
-RUN npm ci
 
-# 2) Copy code
+# Dùng cache cho npm để build nhanh hơn (cần BuildKit)
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci
+
+# 2) Copy code nguồn
 COPY . .
 
-# 3) Build & lược bỏ dev deps
-RUN npm run build && npm prune --omit=dev
+# 3) Build (cần devDeps), rồi lược bỏ devDeps ngay trong build stage
+# - npm ci đã có dev deps (mặc định)
+# - sau khi build xong: prune bỏ dev để lấy node_modules "sạch" cho runtime
+RUN npm run build \
+ && npm prune --omit=dev
 
-# ===== RUNTIME STAGE =====
-FROM node:24-alpine
+###########################
+# ==== RUNTIME STAGE =====
+###########################
+FROM node:24-alpine AS runtime
 WORKDIR /app
-ENV NODE_ENV=production
 
-# 4) Copy node_modules production & dist vào image gọn nhẹ
-COPY --from=build /app/node_modules ./node_modules
+# ENV tối ưu runtime
+ENV NODE_ENV=production \
+    NODE_OPTIONS=--enable-source-maps \
+    NPM_CONFIG_LOGLEVEL=error
+
+# 4) Chỉ copy tối thiểu: package.json, lock, node_modules đã prune & dist
 COPY --from=build /app/package*.json ./
+COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
-COPY --from=build /app/src/mail/templates ./src/mail/templates  
-# (Nếu bạn có assets như template email ở src, xem mục “Copy assets” bên dưới)
-# Ví dụ:
-# COPY --from=build /app/dist/mail/templates ./dist/mail/templates
+
+# Nếu có asset cần lúc chạy (VD: template email) mà KHÔNG được bundle vào dist
+# => copy thẳng từ build context (đã qua linter/test)
+COPY --from=build /app/src/mail/templates ./src/mail/templates
+
+# Bảo mật: chạy user không phải root
+RUN addgroup -S app && adduser -S app -G app
+USER app
 
 EXPOSE 3000
+
+# (Tùy chọn) Healthcheck đơn giản
+# HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+#   CMD node -e "fetch('http://127.0.0.1:3000/health').then(r=>{if(r.ok)process.exit(0);process.exit(1)}).catch(()=>process.exit(1))"
+
 CMD ["node", "dist/main.js"]

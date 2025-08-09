@@ -12,6 +12,7 @@
 .fake
 .vscode/tasks.json
 .vscode/launch.json
+.vscode/*
 Services/EmailSender/node_modules/.bin/css-beautify
 GateWay/InternalGateway/appsettings.json
 GateWay/InternalGateway/appsettings.Development.json

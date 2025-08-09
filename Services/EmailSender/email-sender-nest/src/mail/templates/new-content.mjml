@@ -1,0 +1,12 @@
+<mjml>
+  <mj-body background-color="#f5f5f5">
+    <mj-section>
+      <mj-column>
+        <mj-text font-size="20px" font-weight="bold">Nội dung mới: {{title}}</mj-text>
+        <mj-text>Xin chào,<br/>Bài học mới đã sẵn sàng. Bấm vào link bên dưới:</mj-text>
+        <mj-button href="{{url}}">Xem ngay</mj-button>
+        <mj-text font-size="12px" color="#888">Nếu không muốn nhận email này, hãy tắt trong cài đặt.</mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>

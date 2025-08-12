@@ -18,3 +18,5 @@ GateWay/InternalGateway/appsettings.json
 GateWay/InternalGateway/appsettings.Development.json
 GateWay/InternalGateway/bin/Debug/net8.0/appsettings.json
 GateWay/InternalGateway/bin/Debug/net8.0/appsettings.Development.json
+.container/*
+.container/queue/data/.erlang.cookie

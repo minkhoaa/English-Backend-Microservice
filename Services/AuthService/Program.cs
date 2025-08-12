@@ -6,6 +6,7 @@ using AuthService.Data;
 using AuthService.IService;
 using AuthService.Models;
 using AuthService.Service;
+using MassTransit;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.CodeAnalysis.Options;
@@ -13,13 +14,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-
+using Contracts;
 var builder = WebApplication.CreateBuilder(args);
 
 
-
+builder.Services.Configure<MessageBrokerSettings>(builder.Configuration.GetSection("MessageBroker"));
 builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<IEmailService, EmailService>(); 
 
 builder.Services.AddControllers(); 
 
@@ -40,9 +40,27 @@ builder.Services.AddSwaggerGen();
 //Config Jwt, nhận được IOptions<JwtSettings>, cần inject vào các service là IOptions<JwtSettings>
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
 var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>();
-builder.Services.AddSingleton<JwtSettings>(); 
+builder.Services.AddSingleton<JwtSettings>();
 
+builder.Services.AddMassTransit(busConfigurator =>
+{
+    busConfigurator.SetKebabCaseEndpointNameFormatter();
+    busConfigurator.UsingRabbitMq((context, cfg) =>
+    {
+        var uri = builder.Configuration["MessageBroker:Host"] ?? "amqp://emailservice-mq:5672";
+        var user = builder.Configuration["MessageBroker:Username"] ?? "guest";
+        var pass = builder.Configuration["MessageBroker:Password"] ?? "guest";
+        cfg.Host(
+            host: builder.Configuration["Rabbit:Host"] ?? "emailservice-mq",
+            virtualHost: builder.Configuration["Rabbit:VHost"] ?? "/",
+            h => { h.Username(builder.Configuration["Rabbit:User"] ?? "guest"); h.Password(builder.Configuration["Rabbit:Pass"] ?? "guest"); }
+        );
 
+        // Mapping contract -> exchange & exchange type
+        cfg.Message<EmailSendRequested>(m => m.SetEntityName("mail.commands"));
+        cfg.Publish<EmailSendRequested>(p => p.ExchangeType = "topic");
+    });
+}); 
 
 builder.Services.AddAuthentication(option =>
 {
@@ -64,6 +82,8 @@ builder.Services.AddAuthentication(option =>
         ClockSkew = TimeSpan.Zero
     };
 } );
+
+
 
 
 var app = builder.Build();

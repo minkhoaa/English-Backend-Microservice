@@ -31,6 +31,7 @@ export class MailController {
     @ApiResponse({status: 200, description:'Email sent'})
     public async send(@Body() dto: SendEmailDto) {
         await this.mail.send(dto);
+        console.log("Success");
         return {ok:true};
     }
     

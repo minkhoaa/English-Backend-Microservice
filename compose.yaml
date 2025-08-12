@@ -5,8 +5,13 @@ services:
     image: authservice
     environment:
       - ASPNETCORE_FORWARDEDHEADERS_ENABLED=true
+      - ASPNETCORE_URLS=http://+:8080
       - DEFAULT_CONNECTIONSTRING=Host=postgres;Port=5432;Database=mydb;Username=myuser;Password=mypassword
-
+      # Rabbit config (để Program.cs đọc)
+      - Rabbit__Host=emailservice-mq
+      - Rabbit__VHost=/
+      - Rabbit__User=guest
+      - Rabbit__Pass=guest
     build:
       context: .
       dockerfile: Services/AuthService/Dockerfile
@@ -14,6 +19,9 @@ services:
       - 8080:8080
     networks:
       - backend
+    depends_on:
+      emailservice-mq:
+        condition: service_healthy
 
   emailsender: 
     image: emailsender
@@ -22,7 +30,13 @@ services:
       dockerfile: Dockerfile
     env_file:
       - ./Services/EmailSender/email-sender-nest/.env
-
+    environment:
+      - RABBIT_URI=amqp://guest:guest@emailservice-mq:5672
+    depends_on:
+      emailservice-mq:
+        condition: service_healthy
+    networks: 
+      - backend
     ports:
       - 3000:3000
 
@@ -43,6 +57,26 @@ services:
       - backend
 
 
+  emailservice-mq:
+    image: rabbitmq:3-management
+    container_name:  emailservice-mq
+    hostname: emailservice-mq
+    volumes:
+      - ./.container/queue/data/:/var/lib/rabbitmq
+      - ./.container/queue/log/:/var/log/rabbitmq
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    ports:
+      - 5672:5672
+      - 15672:15672
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks:
+      - backend
   postgres:
     image: postgres:15
     container_name: postgres

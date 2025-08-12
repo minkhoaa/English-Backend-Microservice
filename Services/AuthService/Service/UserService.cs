@@ -38,6 +38,7 @@ namespace AuthService.Service
             _jwtSettings = jwtSettings.Value; 
         }
 
+
         public async Task<ApiResponse> LoginAsync(RequestLogin model)
         {
             if (model.Email == null || model.Password == null)

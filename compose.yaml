@@ -14,20 +14,7 @@ services:
       - 8080:8080
     networks:
       - backend
-  vocabularyservice:
-    image: vocabularyservice
-    environment:
-      - ASPNETCORE_FORWARDEDHEADERS_ENABLED=true
-      - DEFAULT_CONNECTIONSTRING="Host=postgres;Port=5432;Database=mydb;Username=myuser;Password=mypassword"
 
-    build: 
-      context: .
-      dockerfile: Services/VocabularyService/Dockerfile
-      
-    ports:
-      - 8081:8081
-    networks:
-      - backend
   emailsender: 
     image: emailsender
     build: 

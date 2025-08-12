@@ -62,8 +62,7 @@ services:
     container_name:  emailservice-mq
     hostname: emailservice-mq
     volumes:
-      - ./.container/queue/data/:/var/lib/rabbitmq
-      - ./.container/queue/log/:/var/log/rabbitmq
+      - rabbitmq_data:/var/lib/rabbitmq  
     environment:
       - RABBITMQ_DEFAULT_USER=guest
       - RABBITMQ_DEFAULT_PASS=guest
@@ -98,6 +97,7 @@ services:
 
 volumes:
   pgdata:
+  rabbitmq_data:
 
 networks:
   backend:

@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import { MailService } from './mail.service';
+import { Console } from 'console';
 
 type EmailSendMessage = {
   to: string;
@@ -42,7 +43,7 @@ export class MailSubscriber {
 
     this.log.log(`📨 email.send → to=${to}, template=${template}`);
     try {
-      await this.mail.send({ to, subject, template, variables: variables as Record<string, any> });
+      await this.mail.sendEmailConfirm({ to, subject, template, variables: variables as Record<string, any> });
       this.log.log(`✅ Email sent to ${to}`);
     } catch (err: any) {
       this.log.error(`❌ Send failed: ${err?.message || err}`);

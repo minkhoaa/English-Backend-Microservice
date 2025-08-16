@@ -11,13 +11,12 @@ class SendEmailDto {
   @IsEmail() to!: string;
   @ApiProperty({example: 'string'})
   @IsString() @IsNotEmpty() subject!: string;
-  @ApiProperty({example:'new-content'})
-  @IsString() @IsNotEmpty() template!: string; 
-
+  @ApiProperty({example:'verify-email'})
+  @IsString() @IsNotEmpty() template!: string;
   @ApiPropertyOptional({
     type:'object',
     additionalProperties: true,
-    example: {title: 'Unit 12', url: 'https://app.local/lesson/12'}
+    example: {title: 'Unit 12', url: 'http://app.local/lesson/12'}
   })
   @IsObject() @IsOptional() variables?: Record<string, any>;
 }

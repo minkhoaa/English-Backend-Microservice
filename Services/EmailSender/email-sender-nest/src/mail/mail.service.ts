@@ -45,4 +45,38 @@ export class MailService {
         const html = await this.render(opts.template, opts.variables?? {});
         await this.transporter.sendMail({from:this.from, to:opts.to, subject:opts.subject, html:html});
     }
+    public async sendEmailConfirm(opts: {
+        to: string;
+        subject: string;
+        template: string;
+        variables?: Record<string, any>;
+        }) {
+        const vars = { ...(opts.variables ?? {}) };
+
+        if (!vars.verifyUrl && vars.uid && vars.token) {
+
+            const base =
+            this.cfg.get<string>('VERIFY_CALLBACK_BASE') ||
+            'http://localhost:8080/auth/verify-email';
+
+            const u = new URL(base);
+        
+            u.searchParams.delete('id');
+            u.searchParams.delete('token');
+            u.searchParams.set('id', String(vars.uid));
+            u.searchParams.set('token', String(vars.token)); 
+            vars.verifyUrl = u.toString();
+            }
+
+            const html = await this.render(opts.template, vars);
+            await this.transporter.sendMail({
+                from: this.from,
+                to: opts.to,
+                subject: opts.subject,
+                html,
+            });
+        }
+
+
+    
 }

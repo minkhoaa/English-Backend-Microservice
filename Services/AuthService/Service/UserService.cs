@@ -138,12 +138,12 @@ namespace AuthService.Service
 
                     var rawToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
                     var tokenEncoded = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(rawToken));
-                    var verifyUrl = $"{_appUrlOptions.VerificationCallbackBase}?uid={user.Id}&token={tokenEncoded}";
+                    var verifyUrl = $"{_appUrlOptions.VerificationCallbackBase}?userId={user.Id}&token={tokenEncoded}";
 
                     var msg = new EmailSendRequested(
                     To: user.Email!,
                     Subject: "Verify your account",
-                    Template: "new-content",
+                    Template: "verify-email",
                     Variables: new Dictionary<string, object>
                     {
                         ["verifyUrl"] = verifyUrl,

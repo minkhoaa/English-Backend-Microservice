@@ -15,6 +15,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Contracts;
+using System.IdentityModel.Tokens.Jwt;
 var builder = WebApplication.CreateBuilder(args);
 
 
@@ -37,36 +38,36 @@ builder.Services.AddIdentity<User, Role>(option =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-//Config Jwt, nhận được IOptions<JwtSettings>, cần inject vào các service là IOptions<JwtSettings>
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
 var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>();
 builder.Services.AddSingleton<JwtSettings>();
+
+builder.Services.Configure<AppUrlOptions>(builder.Configuration.GetSection("AppUrls:VerificationCallbackBase"));
+
+
 
 builder.Services.AddMassTransit(busConfigurator =>
 {
     busConfigurator.SetKebabCaseEndpointNameFormatter();
     busConfigurator.UsingRabbitMq((context, cfg) =>
     {
-        var uri = builder.Configuration["MessageBroker:Host"] ?? "amqp://emailservice-mq:5672";
-        var user = builder.Configuration["MessageBroker:Username"] ?? "guest";
-        var pass = builder.Configuration["MessageBroker:Password"] ?? "guest";
-        cfg.Host(
-            host: builder.Configuration["Rabbit:Host"] ?? "emailservice-mq",
-            virtualHost: builder.Configuration["Rabbit:VHost"] ?? "/",
-            h => { h.Username(builder.Configuration["Rabbit:User"] ?? "guest"); h.Password(builder.Configuration["Rabbit:Pass"] ?? "guest"); }
-        );
-
-        // Mapping contract -> exchange & exchange type
+        var uri = Environment.GetEnvironmentVariable("Rabbit__Uri");
+        if (string.IsNullOrEmpty(uri)) throw new Exception("Rabbit Uri is missing");
+        cfg.Host(new Uri(uri));
         cfg.Message<EmailSendRequested>(m => m.SetEntityName("mail.commands"));
         cfg.Publish<EmailSendRequested>(p => p.ExchangeType = "topic");
     });
-}); 
-
+});
+builder.Services.Configure<IdentityOptions>(option =>
+{
+    option.SignIn.RequireConfirmedEmail = true;
+});
 builder.Services.AddAuthentication(option =>
 {
     option.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     option.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 })
+
 .AddJwtBearer(option =>
 {
     option.TokenValidationParameters = new TokenValidationParameters()
@@ -79,7 +80,9 @@ builder.Services.AddAuthentication(option =>
         ValidIssuer = jwtSettings!.ValidIssuer,
         ValidAudience = jwtSettings.ValidAudience,
         IssuerSigningKey = new SymmetricSecurityKey(key: Encoding.UTF8.GetBytes(jwtSettings!.SecretKey)),
-        ClockSkew = TimeSpan.Zero
+        ClockSkew = TimeSpan.Zero,
+        RoleClaimType = "Roles",
+        NameClaimType = JwtRegisteredClaimNames.Sub
     };
 } );
 

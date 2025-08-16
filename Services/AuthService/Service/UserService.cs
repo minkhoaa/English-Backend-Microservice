@@ -11,8 +11,12 @@ using AuthService.Data;
 using AuthService.Dto;
 using AuthService.IService;
 using AuthService.Models;
+using Contracts;
+using MassTransit;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.Data;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Options;
@@ -28,14 +32,25 @@ namespace AuthService.Service
         private readonly UserManager<User> _userManager;
         private readonly RoleManager<Role> _roleManager;
         private readonly ApplicationDbContext _context;
-
         private readonly JwtSettings _jwtSettings;
-        public UserService(UserManager<User> userManager, RoleManager<Role> roleManager, ApplicationDbContext context, IOptions<JwtSettings> jwtSettings)
+        private readonly IPublishEndpoint _bus;
+        private readonly AppUrlOptions _appUrlOptions;
+        public UserService(UserManager<User> userManager,
+         RoleManager<Role> roleManager,
+          ApplicationDbContext context,
+           IOptions<JwtSettings> jwtSettings,
+           IPublishEndpoint bus,
+           IOptions<AppUrlOptions> options
+
+           )
         {
             _context = context;
             _userManager = userManager;
             _roleManager = roleManager;
-            _jwtSettings = jwtSettings.Value; 
+            _jwtSettings = jwtSettings.Value;
+            _bus = bus;
+            _appUrlOptions = options.Value;
+
         }
 
 
@@ -51,7 +66,7 @@ namespace AuthService.Service
                 };
             }
             var user = await _userManager.FindByEmailAsync(model.Email);
-                if (user == null || await _userManager.CheckPasswordAsync(user, model.Password))
+                if (user == null || !await _userManager.CheckPasswordAsync(user, model.Password))
                 {
                 return new ApiResponse()
                 {
@@ -64,7 +79,26 @@ namespace AuthService.Service
                     })
                 };
                 }
-            var claims = await _userManager.GetClaimsAsync(user);
+            if (!user.EmailConfirmed)
+            {
+                return new ApiResponse()
+                {
+                    IsSucceed = false,
+                    Message = "Email is not verified"
+                };
+            }
+            var role = await _userManager.GetRolesAsync(user);
+            
+            var claims = new List<Claim>
+                {
+                    new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+                    new(JwtRegisteredClaimNames.Email, user.Email!),
+                    new(JwtRegisteredClaimNames.Name, user.FullName ?? user.UserName ?? user.Email!),
+                    new("email_verified", user.EmailConfirmed ? "true" : "false"),
+                    new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                    new(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64),
+                };
+            claims.AddRange(role.Select(a => new Claim("Roles", a)));
             var secretKey = Encoding.UTF8.GetBytes(_jwtSettings.SecretKey);
             var creds = new SigningCredentials(new SymmetricSecurityKey(secretKey), SecurityAlgorithms.HmacSha256Signature);
             var token = new JwtSecurityToken(
@@ -98,34 +132,32 @@ namespace AuthService.Service
                         UserName = model.Email,
                         FullName = model.FullName
                     };
-                    var createUserResult = await _userManager.CreateAsync(user);
+                    var createUserResult = await _userManager.CreateAsync(user, model.Password);
                     if (!createUserResult.Succeeded) return createUserResult;
 
-                    if (!await _roleManager.RoleExistsAsync(DefaultRole.User))
-                    {
-                        var role = await _roleManager.CreateAsync(new Role { Name = DefaultRole.User });
-                        if (!role.Succeeded) return role;
-                    }
-                    if (!await _userManager.IsInRoleAsync(user, DefaultRole.User))
-                    {
-                        var userrole = await _userManager.AddToRoleAsync(user, DefaultRole.User);
-                        if (!userrole.Succeeded) return userrole;
-                    }
 
-                    var claims = new List<Claim>()
+                    var rawToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+                    var tokenEncoded = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(rawToken));
+                    var verifyUrl = $"{_appUrlOptions.VerificationCallbackBase}?uid={user.Id}&token={tokenEncoded}";
+
+                    var msg = new EmailSendRequested(
+                    To: user.Email!,
+                    Subject: "Verify your account",
+                    Template: "new-content",
+                    Variables: new Dictionary<string, object>
                     {
-                        new(ClaimTypes.Name, user.FullName),
-                        new(ClaimTypes.Email, user.Email),
-                        new(ClaimTypes.Role, DefaultRole.User),
-                    };
-                    foreach (var claim in claims)
-                    {
-                        await _userManager.AddClaimAsync(user, claim);
+                        ["verifyUrl"] = verifyUrl,
+                        ["fullName"] = user.FullName ?? ""
                     }
+                );
+
 
                     await transaction.CommitAsync();
-                    return createUserResult;
-
+                    await _bus.Publish(msg, ctx =>
+                    {
+                        ctx.SetRoutingKey("email.send");
+                    });
+                    return IdentityResult.Success;
                 }
                 catch (Exception ex)
                 {
@@ -136,6 +168,24 @@ namespace AuthService.Service
             }
         }
 
+        public async Task<ApiResponse> VerifyEmail(int UserId, string token)
+        {
+            var user = await _userManager.FindByIdAsync(UserId.ToString());
+            if (user == null) return new ApiResponse() { IsSucceed = false, Message = "User is not existed" };
+            var rawToken = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(token));
+            var result = await _userManager.ConfirmEmailAsync(user, rawToken);
+            if (!result.Succeeded) return new ApiResponse() { IsSucceed = false, Message = "Invalid or expire token " };
 
+            if (!await _roleManager.RoleExistsAsync(DefaultRole.User))
+            {
+                var role = await _roleManager.CreateAsync(new Role { Name = DefaultRole.User });
+            }
+            if (!await _userManager.IsInRoleAsync(user, DefaultRole.User))
+            {
+                var userrole = await _userManager.AddToRoleAsync(user, DefaultRole.User);
+            }
+            return new ApiResponse() { IsSucceed = true, Message = "Email is verified" };
+
+        } 
     }
 }

@@ -1,5 +1,3 @@
-# Please refer https://aka.ms/HTTPSinContainer on how to setup an https developer certificate for your ASP.NET Core service.
-
 services:
   authservice:
     image: authservice
@@ -7,8 +5,10 @@ services:
       - ASPNETCORE_FORWARDEDHEADERS_ENABLED=true
       - ASPNETCORE_URLS=http://+:8080
       - DEFAULT_CONNECTIONSTRING=Host=postgres;Port=5432;Database=mydb;Username=myuser;Password=mypassword
-      # Rabbit config (để Program.cs đọc)
+      - Rabbit__Uri=amqp://guest:guest@emailservice-mq:5672/%2f
+
       - Rabbit__Host=emailservice-mq
+      - Rabbit__Port=5672
       - Rabbit__VHost=/
       - Rabbit__User=guest
       - Rabbit__Pass=guest

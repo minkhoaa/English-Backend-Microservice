@@ -1,30 +1,20 @@
 # syntax=docker/dockerfile:1.7
 
-########################
-# ===== BUILD STAGE ===
-########################
+
 FROM node:24-alpine AS build
 WORKDIR /app
 
-# 1) Chỉ copy file lock & package để tối ưu cache
 COPY package*.json ./
 
-# Dùng cache cho npm để build nhanh hơn (cần BuildKit)
 RUN --mount=type=cache,target=/root/.npm \
     npm ci
 
-# 2) Copy code nguồn
 COPY . .
 
-# 3) Build (cần devDeps), rồi lược bỏ devDeps ngay trong build stage
-# - npm ci đã có dev deps (mặc định)
-# - sau khi build xong: prune bỏ dev để lấy node_modules "sạch" cho runtime
 RUN npm run build \
  && npm prune --omit=dev
 
-###########################
-# ==== RUNTIME STAGE =====
-###########################
+
 FROM node:24-alpine AS runtime
 WORKDIR /app
 
@@ -33,13 +23,12 @@ ENV NODE_ENV=production \
     NODE_OPTIONS=--enable-source-maps \
     NPM_CONFIG_LOGLEVEL=error
 
-# 4) Chỉ copy tối thiểu: package.json, lock, node_modules đã prune & dist
+
 COPY --from=build /app/package*.json ./
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 
-# Nếu có asset cần lúc chạy (VD: template email) mà KHÔNG được bundle vào dist
-# => copy thẳng từ build context (đã qua linter/test)
+
 COPY --from=build /app/src/mail/templates ./src/mail/templates
 
 # Bảo mật: chạy user không phải root

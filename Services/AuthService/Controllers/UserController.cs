@@ -35,7 +35,13 @@ namespace AuthService.Controllers
         public async Task<IActionResult> Login(RequestLogin model)
         {
             var result = await _userService.LoginAsync(model);
-            return result.IsSucceed ? Ok(new { result.Message, result.Data }) : BadRequest( new { result.Message, result.Data });
-        } 
+            return result.IsSucceed ? Ok(new { result.Message, result.Data }) : BadRequest(new { result.Message, result.Data });
+        }
+        [HttpGet("verify-email")]
+        public async Task<IActionResult> VerifyEmail(int userId, string token)
+        {
+            var result = await _userService.VerifyEmail(userId, token);
+            return result.IsSucceed ? Ok(new { result.Message }) : BadRequest(new { result.Message, result.Data });
+        }
     }
 }

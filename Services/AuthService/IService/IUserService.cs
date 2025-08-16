@@ -13,5 +13,7 @@ namespace AuthService.IService
         Task<IdentityResult> RegisterAsync(RequestRegister model);
         Task<ApiResponse> LoginAsync(RequestLogin model);
 
+        Task<ApiResponse> VerifyEmail(int UserId, string token);
+
     }
 }
